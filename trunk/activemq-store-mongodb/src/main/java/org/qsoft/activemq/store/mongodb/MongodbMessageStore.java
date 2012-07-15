@@ -18,19 +18,16 @@ public class MongodbMessageStore extends AbstractMessageStore {
 
 	protected final WireFormat wireFormat;
 	protected final MongoDBHelper helper;
-	private static final Logger LOG = LoggerFactory
-			.getLogger(MongodbMessageStore.class);
+	private static final Logger LOG = LoggerFactory.getLogger(MongodbMessageStore.class);
 
-	public MongodbMessageStore(ActiveMQDestination destination,
-			WireFormat wireFormat, MongoDBHelper helper) {
+	public MongodbMessageStore(ActiveMQDestination destination, WireFormat wireFormat, MongoDBHelper helper) {
 		super(destination);
 		this.wireFormat = wireFormat;
 		this.helper = helper;
 	}
 
 	@Override
-	public void addMessage(ConnectionContext context, Message message)
-			throws IOException {
+	public void addMessage(ConnectionContext context, Message message) throws IOException {
 		LOG.debug("MongodbMessageStore.addMessage: " + message);
 		this.helper.addMessage(message);
 	}
@@ -42,8 +39,7 @@ public class MongodbMessageStore extends AbstractMessageStore {
 	}
 
 	@Override
-	public void removeMessage(ConnectionContext context, MessageAck ack)
-			throws IOException {
+	public void removeMessage(ConnectionContext context, MessageAck ack) throws IOException {
 		LOG.debug("MongodbMessageStore.removeMessage: " + context + "," + ack);
 		this.helper.removeMessage(ack);
 	}
@@ -57,6 +53,7 @@ public class MongodbMessageStore extends AbstractMessageStore {
 	@Override
 	public void recover(MessageRecoveryListener container) throws Exception {
 		LOG.debug("MongodbMessageStore.recover: " + container);
+		// TODO ? what is this
 	}
 
 	@Override
@@ -71,17 +68,14 @@ public class MongodbMessageStore extends AbstractMessageStore {
 	}
 
 	@Override
-	public void recoverNextMessages(int maxReturned,
-			MessageRecoveryListener listener) throws Exception {
-		LOG.debug("MongodbMessageStore.recoverNextMessages: " + maxReturned
-				+ "," + listener);
+	public void recoverNextMessages(int maxReturned, MessageRecoveryListener listener) throws Exception {
+		LOG.debug("MongodbMessageStore.recoverNextMessages: " + maxReturned + "," + listener);
 		// Message message = this.helper.findOne();
 		List<Message> msgs = this.helper.find(maxReturned);
 		for (Message message : msgs) {
 			listener.recoverMessage(message);
 		}
-		LOG.debug("MongodbMessageStore.recoverNextMessages: " + msgs.size()
-				+ " ~DONE!");
+		LOG.debug("MongodbMessageStore.recoverNextMessages: " + msgs.size() + " ~DONE!");
 
 	}
 
