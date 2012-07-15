@@ -3,7 +3,9 @@ package org.qsoft.activemq.store.mongodb;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.activemq.broker.BrokerService;
 import org.apache.activemq.broker.BrokerServiceAware;
@@ -22,21 +24,22 @@ import org.apache.activemq.wireformat.WireFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MongodbPersistenceAdapter implements PersistenceAdapter,
-		BrokerServiceAware {
-	
-	private static final Logger LOG = LoggerFactory
-	.getLogger(MongodbPersistenceAdapter.class);
-	
+public class MongodbPersistenceAdapter implements PersistenceAdapter, BrokerServiceAware {
+
+	private static final Logger LOG = LoggerFactory.getLogger(MongodbPersistenceAdapter.class);
+
+	ConcurrentHashMap<ActiveMQDestination, TopicMessageStore> topics = new ConcurrentHashMap<ActiveMQDestination, TopicMessageStore>();
+	ConcurrentHashMap<ActiveMQDestination, MessageStore> queues = new ConcurrentHashMap<ActiveMQDestination, MessageStore>();
+
 	protected MongoDBHelper helper;
 	private WireFormat wireFormat = new OpenWireFormat();
-	
+
 	private String host;
 	private int port;
 	private String db;
-	
-	private BrokerService brokerService;
-	
+
+	// private BrokerService brokerService;
+
 	public String getHost() {
 		return host;
 	}
@@ -63,73 +66,81 @@ public class MongodbPersistenceAdapter implements PersistenceAdapter,
 
 	@Override
 	public void start() throws Exception {
-		helper = new MongoDBHelper(host,port,db,wireFormat);
+		helper = new MongoDBHelper(host, port, db, wireFormat);
 	}
 
 	@Override
 	public void stop() throws Exception {
-		// TODO Auto-generated method stub
-		
+		if (this.helper != null)
+			this.helper.close();
+	}
+	
+	@Override
+	public void deleteAllMessages() throws IOException {
+		this.helper.removeAllMessages();
 	}
 
 	@Override
 	public void setBrokerService(BrokerService brokerService) {
-		this.brokerService = brokerService;		
+		// this.brokerService = brokerService;
 	}
 
 	@Override
 	public Set<ActiveMQDestination> getDestinations() {
-		// TODO Auto-generated method stub
-		return new HashSet<ActiveMQDestination>();
+		Set<ActiveMQDestination> set = new HashSet<ActiveMQDestination>();
+		List<String> destinations = this.helper.findDestinations();
+		for(String dest : destinations){
+			set.add(ActiveMQDestination.createDestination(dest, ActiveMQDestination.QUEUE_TYPE));
+		}
+		return set;
 	}
 
 	@Override
-	public MessageStore createQueueMessageStore(ActiveMQQueue destination)
-			throws IOException {
+	public MessageStore createQueueMessageStore(ActiveMQQueue destination) throws IOException {
+		LOG.debug("Create QueueMessageStore for destination:[" + destination.getQualifiedName() + "]");
 		return new MongodbMessageStore(destination, wireFormat, helper);
 	}
 
 	@Override
-	public TopicMessageStore createTopicMessageStore(ActiveMQTopic destination)
-			throws IOException {
+	public TopicMessageStore createTopicMessageStore(ActiveMQTopic destination) throws IOException {
+		LOG.debug("Create TopicMessageStore for destination:[" + destination.getQualifiedName() + "]");
 		return new MongodbTopicMessageStore(destination, wireFormat, helper);
 	}
 
 	@Override
 	public void removeQueueMessageStore(ActiveMQQueue destination) {
-		// TODO Auto-generated method stub
-		
+		// ignore
 	}
 
 	@Override
 	public void removeTopicMessageStore(ActiveMQTopic destination) {
-		// TODO Auto-generated method stub
-		
+		// ignore
 	}
 
 	@Override
-	public TransactionStore createTransactionStore() throws IOException {
-		// TODO Auto-generated method stub
-		return new MongodbTransactionStore();
+	public long size() {
+		// ignore
+		return 0;
 	}
 
 	@Override
-	public void beginTransaction(ConnectionContext context) throws IOException {
-		// TODO Auto-generated method stub
-		
+	public void setUsageManager(SystemUsage usageManager) {
+		// ignore
 	}
 
 	@Override
-	public void commitTransaction(ConnectionContext context) throws IOException {
-		// TODO Auto-generated method stub
-		
+	public void setBrokerName(String brokerName) {
+		// ignore
 	}
 
 	@Override
-	public void rollbackTransaction(ConnectionContext context)
-			throws IOException {
-		// TODO Auto-generated method stub
-		
+	public void setDirectory(File dir) {
+		// ignore
+	}
+
+	@Override
+	public void checkpoint(boolean sync) throws IOException {
+		// TODO not supported
 	}
 
 	@Override
@@ -139,45 +150,35 @@ public class MongodbPersistenceAdapter implements PersistenceAdapter,
 	}
 
 	@Override
-	public void deleteAllMessages() throws IOException {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void setUsageManager(SystemUsage usageManager) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void setBrokerName(String brokerName) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void setDirectory(File dir) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void checkpoint(boolean sync) throws IOException {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public long size() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
 	public long getLastProducerSequenceId(ProducerId id) throws IOException {
 		// TODO Auto-generated method stub
 		return 0;
+	}
+
+	public String toString() {
+		return "MongodbPersistenceAdapter(" + host + ":" + port + "/" + db + ")";
+	}
+
+	// // =========== not supported for tx ==========
+	@Override
+	public TransactionStore createTransactionStore() throws IOException {
+		// TODO not supported
+		return new MongodbTransactionStore();
+	}
+
+	@Override
+	public void beginTransaction(ConnectionContext context) throws IOException {
+		// TODO not supported
+	}
+
+	@Override
+	public void commitTransaction(ConnectionContext context) throws IOException {
+		// TODO not supported
+	}
+
+	@Override
+	public void rollbackTransaction(ConnectionContext context) throws IOException {
+		// TODO not supported
 	}
 
 }

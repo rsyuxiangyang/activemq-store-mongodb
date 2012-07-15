@@ -1,10 +1,11 @@
-package org.qsoft.activemq;
+package org.qsoft.activemq.test;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.URI;
 
 import javax.jms.Connection;
+import javax.jms.DeliveryMode;
 import javax.jms.Destination;
 import javax.jms.Message;
 import javax.jms.MessageConsumer;
@@ -35,13 +36,11 @@ public class TestServer {
 
 		Connection connection = null;
 
-		ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory(
-				url);
+		ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory(url);
 		connection = connectionFactory.createConnection();
 
 		connection.start();
-		Session session = connection.createSession(false,
-				Session.AUTO_ACKNOWLEDGE);
+		Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
 		Destination queue = session.createQueue(QUEUE_NAME);
 		Destination topic = session.createTopic(TOPIC_NAME);
 		MessageProducer producer = session.createProducer(queue);
@@ -51,8 +50,7 @@ public class TestServer {
 		MessageConsumer receiver1 = session.createConsumer(topic);
 
 		try {
-			BufferedReader reader = new BufferedReader(new InputStreamReader(
-					System.in));
+			BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 			while (true) {
 				String line = reader.readLine();
 				if (line == null)
@@ -67,8 +65,17 @@ public class TestServer {
 					break;
 				}
 
-				String command = line.substring(0, line.indexOf(" "));
-				String content = line.substring(command.length());
+				String[] sline = line.split(" ");
+
+				String command = sline[0];
+				String content = "";
+				long ct = 10;
+
+				if (sline.length > 1)
+					content = sline[1];
+				if (sline.length > 2)
+					ct = Integer.parseInt(sline[2]);
+
 				if ("send".equalsIgnoreCase(command)) {
 					TextMessage message = session.createTextMessage(content);
 					producer.send(message);
@@ -83,12 +90,17 @@ public class TestServer {
 					}
 				} else if ("sent".equalsIgnoreCase(command)) {
 					TextMessage message = session.createTextMessage(content);
-					producer1.send(message);
-					System.out.println(" send message: " + message);
+					message.setJMSDeliveryMode(DeliveryMode.PERSISTENT);
+					for (int i = 0; i < ct; i++) {
+						producer1.send(message);
+						System.out.println(i + " send message: " + message);
+					}
 				} else if ("rect".equalsIgnoreCase(command)) {
 					try {
-						Message message = receiver1.receive(1000);
-						System.out.println(" receive message: " + message);
+						for (int i = 0; i < ct; i++) {
+							Message message = receiver1.receive();
+							System.out.println(i +" receive message: " + message);
+						}
 					} catch (Exception e) {
 						System.out.println(" error: receive message ");
 						e.printStackTrace();

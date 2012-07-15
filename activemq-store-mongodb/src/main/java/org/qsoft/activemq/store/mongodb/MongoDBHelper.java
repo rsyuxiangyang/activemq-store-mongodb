@@ -25,20 +25,21 @@ import com.mongodb.MongoException;
 
 public class MongoDBHelper {
 
-	private static final String MSGS = "activemq_msgs";
+	protected static final String MSGS = "ACTIVEMQ_MSGS";
+	protected static final String ACKS = "ACTIVEMQ_ACKS";
+	protected static final String LOCK = "ACTIVEMQ_LOCK";
+	
+	protected static final String MSG_COLUMN  = "MSG";
+	protected static final String DEST_COLUMN = "CONTAINER";
 
-	private static final Logger LOG = LoggerFactory
-			.getLogger(MongoDBHelper.class);
+	private static final Logger LOG = LoggerFactory.getLogger(MongoDBHelper.class);
 
 	Mongo mongo;
 	DB db;
 	WireFormat wireFormat;
 
-	public MongoDBHelper(String host, int port, String dbName,
-			WireFormat wireFormat) {
-		LOG
-				.info("Connect to MongoDB[" + host + ":" + port + ":" + dbName
-						+ "]");
+	public MongoDBHelper(String host, int port, String dbName, WireFormat wireFormat) {
+		LOG.info("Connect to MongoDB[" + host + ":" + port + ":" + dbName + "]");
 		try {
 			mongo = new Mongo(host, port);
 			db = mongo.getDB(dbName);
@@ -57,6 +58,14 @@ public class MongoDBHelper {
 		return this.db.getCollection(MSGS);
 	}
 
+	public DBCollection getAcksCollection() {
+		return this.db.getCollection(ACKS);
+	}
+
+	public DBCollection getLockCollection() {
+		return this.db.getCollection(LOCK);
+	}
+
 	public Boolean addMessage(Message message) throws IOException {
 		BasicDBObject bo = new BasicDBObject();
 		MessageId messageId = message.getMessageId();
@@ -66,8 +75,7 @@ public class MongoDBHelper {
 			ByteSequence packet = wireFormat.marshal(message);
 			data = ByteSequenceData.toByteArray(packet);
 		} catch (IOException e) {
-			throw IOExceptionSupport.create("Failed to broker message: "
-					+ messageId + " in container: " + e, e);
+			throw IOExceptionSupport.create("Failed to broker message: " + messageId + " in container: " + e, e);
 		}
 		bo.append("ID", messageId.getBrokerSequenceId());
 		bo.append("CONTAINER", message.getDestination().getQualifiedName());
@@ -85,6 +93,10 @@ public class MongoDBHelper {
 
 	}
 
+	public void close() {
+		this.mongo.close();
+	}
+
 	public Message getMessage(MessageId messageId) throws IOException {
 
 		BasicDBObject bo = new BasicDBObject();
@@ -93,7 +105,7 @@ public class MongoDBHelper {
 		DBObject o = getMsgsCollection().findOne(bo);
 		if (o == null)
 			return null;
-		byte[] data = (byte[]) o.get("MSG");
+		byte[] data = (byte[]) o.get(MSG_COLUMN);
 		if (data == null)
 			return null;
 
@@ -101,8 +113,7 @@ public class MongoDBHelper {
 		try {
 			answer = (Message) wireFormat.unmarshal(new ByteSequence(data));
 		} catch (IOException e) {
-			throw IOExceptionSupport.create("Failed to broker message: "
-					+ messageId + " in container: " + e, e);
+			throw IOExceptionSupport.create("Failed to broker message: " + messageId + " in container: " + e, e);
 		}
 		return answer;
 	}
@@ -120,15 +131,17 @@ public class MongoDBHelper {
 		getMsgsCollection().remove(o);
 	}
 
-	public void removeAllMessages() {
-
+	public synchronized void removeAllMessages() {
+		getMsgsCollection().drop();
+		getAcksCollection().drop();
+		getLockCollection().drop();
 	}
 
 	public Message findOne() throws IOException {
 		DBObject o = getMsgsCollection().findOne();
 		if (o == null)
 			return null;
-		byte[] data = (byte[]) o.get("MSG");
+		byte[] data = (byte[]) o.get(MSG_COLUMN);
 		if (data == null)
 			return null;
 
@@ -136,8 +149,7 @@ public class MongoDBHelper {
 		try {
 			answer = (Message) wireFormat.unmarshal(new ByteSequence(data));
 		} catch (IOException e) {
-			throw IOExceptionSupport.create(
-					"Failed to broker message in container: " + e, e);
+			throw IOExceptionSupport.create("Failed to broker message in container: " + e, e);
 		}
 		return answer;
 	}
@@ -149,7 +161,7 @@ public class MongoDBHelper {
 			DBObject o = c.next();
 			if (o == null)
 				return null;
-			byte[] data = (byte[]) o.get("MSG");
+			byte[] data = (byte[]) o.get(MSG_COLUMN);
 			if (data == null)
 				return null;
 			Message answer = null;
@@ -157,11 +169,16 @@ public class MongoDBHelper {
 				answer = (Message) wireFormat.unmarshal(new ByteSequence(data));
 				msgs.add(answer);
 			} catch (IOException e) {
-				throw IOExceptionSupport.create(
-						"Failed to broker message in container: " + e, e);
+				throw IOExceptionSupport.create("Failed to broker message in container: " + e, e);
 			}
 		}
 		return msgs;
+	}
+
+	@SuppressWarnings("unchecked")
+	public List<String> findDestinations() {
+		List<String> dists = getMsgsCollection().distinct(DEST_COLUMN);
+		return dists;
 	}
 
 }
