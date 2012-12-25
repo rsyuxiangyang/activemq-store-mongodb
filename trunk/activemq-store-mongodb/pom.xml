@@ -6,7 +6,7 @@
   <parent>
     <groupId>org.apache.activemq</groupId>
     <artifactId>activemq-parent</artifactId>
-    <version>5.5.0</version>
+    <version>5.7.0</version>
   </parent>
 
   <artifactId>activemq-store-mongodb</artifactId>
@@ -75,11 +75,11 @@
       <artifactId>xbean-spring</artifactId>
       <optional>true</optional>
     </dependency>
-    <dependency>
+    <!-- dependency>
       <groupId>stax</groupId>
       <artifactId>stax-api</artifactId>
       <optional>true</optional>
-    </dependency>
+    </dependency> -->
 
     <dependency>
       <groupId>org.springframework</groupId>
@@ -146,11 +146,11 @@
       <artifactId>commons-io</artifactId>
       <scope>test</scope>
     </dependency>
-    <dependency>
+    <!-- dependency>
       <groupId>org.apache.activemq</groupId>
       <artifactId>activemq-jmdns_1.0</artifactId>
       <optional>true</optional>
-    </dependency>
+    </dependency> -->
     
     <!-- database testing -->
     <dependency>
