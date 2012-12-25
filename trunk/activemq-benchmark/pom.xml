@@ -9,7 +9,7 @@
     <version>5.7.0</version>
   </parent>
 
-  <artifactId>activemq-store-mongodb</artifactId>
+  <artifactId>activemq-benchmark</artifactId>
   <packaging>bundle</packaging>
   <name>ActiveMQ :: Benchmark</name>
   <description>A Benchmark for ActiveMQ.</description>
