@@ -181,4 +181,9 @@ public class MongodbPersistenceAdapter implements PersistenceAdapter, BrokerServ
 		// TODO not supported
 	}
 
+	@Override
+	public File getDirectory() {
+		return null;
+	}
+
 }
