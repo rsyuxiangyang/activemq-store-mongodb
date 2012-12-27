@@ -1,8 +1,5 @@
 package org.qsoft.activemq.test;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-
 import javax.jms.Queue;
 import javax.jms.QueueConnection;
 import javax.jms.QueueConnectionFactory;
@@ -24,7 +21,7 @@ public class TestSender {
 			// init connection factory with activemq
 			QueueConnectionFactory factory = new ActiveMQConnectionFactory("tcp://127.0.0.1:61616");
 			// specify the destination
-			Queue queue = new ActiveMQQueue("queueTest");
+			Queue queue = new ActiveMQQueue("queue.ad");
 			// create connection,session,producer and deliver message
 			QueueConnection conn = factory.createQueueConnection();
 			QueueSession session = conn.createQueueSession(false, Session.AUTO_ACKNOWLEDGE);
