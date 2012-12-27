@@ -2,20 +2,18 @@ package org.qsoft.activemq.test.advisory;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.jms.JMSException;
 import javax.jms.Message;
+import javax.jms.MessageConsumer;
 import javax.jms.MessageListener;
 import javax.jms.MessageProducer;
-import javax.jms.Queue;
-import javax.jms.QueueConnection;
-import javax.jms.QueueConnectionFactory;
-import javax.jms.QueueReceiver;
-import javax.jms.QueueSession;
 import javax.jms.Session;
 import javax.jms.TextMessage;
+import javax.jms.Topic;
+import javax.jms.TopicConnection;
+import javax.jms.TopicSession;
 
 import org.apache.activemq.ActiveMQConnectionFactory;
-import org.apache.activemq.command.ActiveMQQueue;
+import org.apache.activemq.command.ActiveMQTopic;
 
 public class TestAdvisory {
 
@@ -25,83 +23,97 @@ public class TestAdvisory {
 	public static void main(String[] args) {
 		try {
 			// init connection factory with activemq
-			QueueConnectionFactory factoryA = new ActiveMQConnectionFactory("tcp://127.0.0.1:61616");
-			// specify the destination
-			Queue queueB = new ActiveMQQueue("kk.b");
-			// create connection,session,consumer and receive message
-			QueueConnection connA = factoryA.createQueueConnection();
+			ActiveMQConnectionFactory factoryA = new ActiveMQConnectionFactory(
+					"tcp://127.0.0.1:61616");
+			TopicConnection connA = factoryA.createTopicConnection();
 			connA.start();
+			TopicSession sessionA1 = connA.createTopicSession(false,
+					Session.AUTO_ACKNOWLEDGE);
 			
-			// first receiver on broker1
-			QueueSession sessionA1 = connA.createQueueSession(false, Session.AUTO_ACKNOWLEDGE);
-			QueueReceiver receiverA1 = sessionA1.createReceiver(queueB);
-			final AtomicInteger aint1 = new AtomicInteger(0);
-			MessageListener listenerA1 = new MessageListener(){
-				public void onMessage(Message message) {
-					try {
-						System.out.println(aint1.incrementAndGet()+" => A1 receive from kk.b: " + ((TextMessage)message).getText());
-					} catch (JMSException e) {
-						e.printStackTrace();
-					}
-				}};
-			receiverA1.setMessageListener(listenerA1 );
+//			Topic topicQ = new ActiveMQTopic("ActiveMQ.Advisory.Topic");
+//			TopicSubscriber subscriberQ = sessionA1.createSubscriber(topicQ);
+//			final AtomicInteger aint1 = new AtomicInteger(0);
+//			MessageListener listenerA1 = new MessageListener() {
+//				public void onMessage(Message message) {
+//					try {
+//						System.out.println(aint1.incrementAndGet()
+//								+ " => Advisory receive from ActiveMQ.Advisory.Topic: "
+//								+   message );
+//					} catch (Exception e) {
+//						e.printStackTrace();
+//					}
+//				}
+//			};
+//			subscriberQ.setMessageListener(listenerA1);
 			
-			// second receiver on broker1
-			QueueSession sessionA2 = connA.createQueueSession(false, Session.AUTO_ACKNOWLEDGE);
-			QueueReceiver receiverA2 = sessionA2.createReceiver(queueB);
+			Topic topicP = new ActiveMQTopic("ActiveMQ.Advisory.Producer.Topic..>");
+			//Destination advisoryDestination = AdvisorySupport.getProducerAdvisoryTopic(topicP);
+			MessageConsumer consumerP = sessionA1.createConsumer(topicP);
 			final AtomicInteger aint2 = new AtomicInteger(0);
-			MessageListener listenerA2 = new MessageListener(){
+			MessageListener listenerA2 = new MessageListener() {
 				public void onMessage(Message message) {
 					try {
-						System.out.println(aint2.incrementAndGet()+" => A2 receive from kk.b: " + ((TextMessage)message).getText());
-					} catch (JMSException e) {
+						System.out.println(aint2.incrementAndGet()
+								+ " => Advisory receive from ActiveMQ.Advisory.Producer.Topic: "
+								+   message );
+					} catch (Exception e) {
 						e.printStackTrace();
 					}
-				}};
-			receiverA2.setMessageListener(listenerA2 );
+				}
+			};
+			consumerP.setMessageListener(listenerA2);
 			
-			// a fake one on broker1
-			QueueReceiver receiverA3 = sessionA2.createReceiver(queueB);
-			final AtomicInteger aint3 = new AtomicInteger(0);
-			MessageListener listenerA3 = new MessageListener(){
+			Topic topicC = new ActiveMQTopic("ActiveMQ.Advisory.Consumer.Topic..>");
+			//Destination advisoryDestinationC = AdvisorySupport.getProducerAdvisoryTopic(topicC);
+			MessageConsumer consumerC = sessionA1.createConsumer(topicC);
+			final AtomicInteger aintC = new AtomicInteger(0);
+			MessageListener listenerAC = new MessageListener() {
 				public void onMessage(Message message) {
 					try {
-						System.out.println(aint3.incrementAndGet()+" => A3 receive from kk.b: " + ((TextMessage)message).getText());
-					} catch (JMSException e) {
+						System.out.println(aintC.incrementAndGet()
+								+ " => Advisory receive from ActiveMQ.Advisory.Consumer.Topic: "
+								+   message );
+					} catch (Exception e) {
 						e.printStackTrace();
 					}
-				}};
-			receiverA3.setMessageListener(listenerA3 );
+				}
+			};
+			consumerC.setMessageListener(listenerAC);
 			
-			QueueConnectionFactory factoryB = new ActiveMQConnectionFactory("tcp://127.0.0.1:61618");
-			Queue queueB1 = new ActiveMQQueue("kk.b");
-			QueueConnection connB = factoryB.createQueueConnection();
+			Thread.sleep(1000);
+
+			// 
+			Topic destB = new ActiveMQTopic("kk.adt");
+			TopicConnection connB = factoryA.createTopicConnection();
 			connB.start();
+			TopicSession sessionB = connB.createTopicSession(false,
+					Session.AUTO_ACKNOWLEDGE);
 			
-			// one receiver on broker2
-			QueueSession sessionB1 = connB.createQueueSession(false, Session.AUTO_ACKNOWLEDGE);
-			QueueReceiver receiverB1 = sessionB1.createReceiver(queueB);
-			final AtomicInteger bint1 = new AtomicInteger(0);
-			MessageListener listenerB1 = new MessageListener(){
+			MessageConsumer consumer = sessionB.createConsumer(destB);
+			final AtomicInteger aint3 = new AtomicInteger(0);
+			MessageListener listenerA3 = new MessageListener() {
 				public void onMessage(Message message) {
 					try {
-						System.out.println(bint1.incrementAndGet()+" => B1 receive from kk.b: " + ((TextMessage)message).getText());
-					} catch (JMSException e) {
+						System.out.println(aint3.incrementAndGet()
+								+ " => receive from kk.ad: "
+								+   message );
+					} catch (Exception e) {
 						e.printStackTrace();
 					}
-				}};
-				receiverB1.setMessageListener(listenerB1 );
+				}
+			};
+			consumer.setMessageListener(listenerA3);
 			
-			// producer  on broker2
-			QueueSession sessionBp = connB.createQueueSession(false, Session.AUTO_ACKNOWLEDGE);
-			MessageProducer producer = sessionBp.createProducer(queueB1);
+			MessageProducer producer = sessionB.createProducer(destB);
 			int index = 0;
-			while(index++<300){
-				TextMessage message = sessionBp.createTextMessage(index + " from kk.b on broker2");
+			while (index++ < 1) {
+				TextMessage message = sessionB.createTextMessage(index
+						+ " message.");
 				producer.send(message);
 			}
-			
-			
+//			sessionB.close();
+//			connB.close();
+
 		} catch (Exception e) {
 			e.printStackTrace();
 			System.exit(1);
