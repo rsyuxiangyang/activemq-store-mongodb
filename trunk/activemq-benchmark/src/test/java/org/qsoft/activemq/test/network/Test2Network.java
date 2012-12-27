@@ -1,4 +1,4 @@
-package org.qsoft.activemq.test;
+package org.qsoft.activemq.test.network;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -17,7 +17,7 @@ import javax.jms.TextMessage;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.command.ActiveMQQueue;
 
-public class TestReceiver {
+public class Test2Network {
 
 	/**
 	 * @param args
