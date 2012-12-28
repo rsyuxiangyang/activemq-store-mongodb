@@ -1,15 +1,15 @@
 package org.qsoft.activemq.test;
 
-import javax.jms.Queue;
-import javax.jms.QueueConnection;
-import javax.jms.QueueConnectionFactory;
+import javax.jms.Connection;
+import javax.jms.Destination;
+import javax.jms.MessageProducer;
 import javax.jms.QueueSender;
 import javax.jms.QueueSession;
 import javax.jms.Session;
 import javax.jms.TextMessage;
 
 import org.apache.activemq.ActiveMQConnectionFactory;
-import org.apache.activemq.command.ActiveMQQueue;
+import org.apache.activemq.command.ActiveMQTopic;
 
 public class TestSender {
 
@@ -19,18 +19,18 @@ public class TestSender {
 	public static void main(String[] args) {
 		try {
 			// init connection factory with activemq
-			QueueConnectionFactory factory = new ActiveMQConnectionFactory("tcp://127.0.0.1:61616");
+			ActiveMQConnectionFactory factory = new ActiveMQConnectionFactory("tcp://127.0.0.1:61616");
 			// specify the destination
-			Queue queue = new ActiveMQQueue("queue.ad");
+			Destination dest = new ActiveMQTopic("kk.adt");
 			// create connection,session,producer and deliver message
-			QueueConnection conn = factory.createQueueConnection();
-			QueueSession session = conn.createQueueSession(false, Session.AUTO_ACKNOWLEDGE);
-			QueueSender sender = session.createSender(queue);
-			for (int i = 0; i < 200; i++) {
-				String msgText = "testMessage";
-				TextMessage msg = session.createTextMessage(msgText);
-				if(i%2 == 1)msg.setIntProperty("score", 10);
-				sender.send(msg);
+			Connection conn = factory.createConnection();
+			Session session = conn.createSession(false, Session.AUTO_ACKNOWLEDGE);
+			MessageProducer producer = session.createProducer(dest);
+			int index = 0;
+			while (index++ < 2) {
+				TextMessage message = session.createTextMessage(index
+						+ " message.");
+				producer.send(message);
 			}
 			session.close();
 			conn.close();
