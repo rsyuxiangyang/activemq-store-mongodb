@@ -16,8 +16,7 @@
 
 	<!-- The <broker> element is used to configure the ActiveMQ broker. -->
 	<broker xmlns="http://activemq.apache.org/schema/core"
-		brokerName="kk" dataDirectory="${activemq.base}/data"
-		destroyApplicationContextOnStop="true">
+		brokerName="kk" dataDirectory="data" useJmx="true">
 
 		<!-- For better performances use VM cursor and small memory limit. For 
 			more information, see: http://activemq.apache.org/message-cursors.html Also, 
@@ -28,13 +27,13 @@
 			<policyMap>
 				<policyEntries>
 					<policyEntry topic=">" producerFlowControl="true"
-						memoryLimit="1mb">
+						memoryLimit="64mb">
 						<pendingSubscriberPolicy>
 							<vmCursor />
 						</pendingSubscriberPolicy>
 					</policyEntry>
 					<policyEntry queue=">" producerFlowControl="true"
-						memoryLimit="1mb">
+						memoryLimit="64mb">
 						<!-- Use VM cursor for better latency For more information, see: http://activemq.apache.org/message-cursors.html 
 							<pendingQueuePolicy> <vmQueueCursor/> </pendingQueuePolicy> -->
 					</policyEntry>
@@ -55,8 +54,7 @@
 			see: http://activemq.apache.org/persistence.html -->
 
 		<persistenceAdapter>
-			<jdbcPersistenceAdapter dataDirectory="${activemq.base}/data"
-				dataSource="#mysql-ds" />
+			<jdbcPersistenceAdapter dataSource="#mysql-ds" />
 		</persistenceAdapter>
 
 		<!-- The systemUsage controls the maximum amount of space the broker will 
@@ -79,7 +77,8 @@
 		<property name="url"
 			value="jdbc:mysql://localhost/activemq?relaxAutoCommit=true" />
 		<property name="username" value="root" />
-		<property name="password" value="123" />
+		<property name="password" value="" />
+		<property name="maxActive" value="20"/>
 		<property name="poolPreparedStatements" value="true" />
 	</bean>
 
