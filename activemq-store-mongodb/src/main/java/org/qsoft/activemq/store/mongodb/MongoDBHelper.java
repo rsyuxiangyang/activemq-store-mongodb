@@ -5,6 +5,7 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.activemq.command.ActiveMQDestination;
 import org.apache.activemq.command.Message;
 import org.apache.activemq.command.MessageAck;
 import org.apache.activemq.command.MessageId;
@@ -78,11 +79,11 @@ public class MongoDBHelper {
 			throw IOExceptionSupport.create("Failed to broker message: " + messageId + " in container: " + e, e);
 		}
 		bo.append("ID", messageId.getBrokerSequenceId());
-		bo.append("CONTAINER", message.getDestination().getQualifiedName());
+		bo.append(DEST_COLUMN, message.getDestination().getQualifiedName());
 		bo.append("MSGID_PROD", messageId.getProducerId().toString());
-		bo.append("MSGID_SEQ", messageId.getBrokerSequenceId());
+		bo.append("MSGID_SEQ", messageId.getProducerSequenceId());
 		bo.append("EXPIRATION", message.getExpiration());
-		bo.append("MSG", data);
+		bo.append(MSG_COLUMN, data);
 		bo.append("PRIORITY", message.getPriority());
 		getMsgsCollection().save(bo);
 
@@ -101,7 +102,7 @@ public class MongoDBHelper {
 
 		BasicDBObject bo = new BasicDBObject();
 		bo.append("MSGID_PROD", messageId.getProducerId().toString());
-		bo.append("MSGID_SEQ", messageId.getBrokerSequenceId());
+		bo.append("MSGID_SEQ", messageId.getProducerSequenceId());
 		DBObject o = getMsgsCollection().findOne(bo);
 		if (o == null)
 			return null;
@@ -122,13 +123,22 @@ public class MongoDBHelper {
 		return (int) getMsgsCollection().count();
 	}
 
-	public void removeMessage(MessageAck ack) {
+	public synchronized void removeMessage(ActiveMQDestination destination, MessageAck ack) {
 		MessageId messageId = ack.getLastMessageId();
+		ack.getDestination();
 		BasicDBObject bo = new BasicDBObject();
+		bo.append(DEST_COLUMN, destination.getQualifiedName());
 		bo.append("MSGID_PROD", messageId.getProducerId().toString());
-		bo.append("MSGID_SEQ", messageId.getBrokerSequenceId());
+		bo.append("MSGID_SEQ", messageId.getProducerSequenceId());
 		DBObject o = getMsgsCollection().findOne(bo);
-		getMsgsCollection().remove(o);
+		if(o != null){
+			Object sequenceId = o.get("ID");
+			getMsgsCollection().remove(new BasicDBObject("ID",sequenceId));
+			//getMsgsCollection().remove(new BasicDBObject("ID",new BasicDBObject("$lte",sequenceId)));
+		}else{
+			LOG.error(bo.toString() + " is not found.");
+		}
+		
 	}
 
 	public synchronized void removeAllMessages() {
@@ -154,9 +164,14 @@ public class MongoDBHelper {
 		return answer;
 	}
 
-	public List<Message> find(int limit) throws IOException {
+	public List<Message> find(int limit, String container, long sequenceId) throws IOException {
 		List<Message> msgs = new ArrayList<Message>(limit);
-		DBCursor c = getMsgsCollection().find().limit(limit);
+		
+		BasicDBObject bo = new BasicDBObject();
+		bo.append(DEST_COLUMN, container);
+		bo.append("ID", new BasicDBObject("$gt",sequenceId));
+		
+		DBCursor c = getMsgsCollection().find(bo).sort(new BasicDBObject("ID",1)).limit(limit);
 		while (c.hasNext()) {
 			DBObject o = c.next();
 			if (o == null)
@@ -172,7 +187,17 @@ public class MongoDBHelper {
 				throw IOExceptionSupport.create("Failed to broker message in container: " + e, e);
 			}
 		}
-		return msgs;
+		return trim(msgs);
+	}
+
+	private List<Message> trim(List<Message> msgs2) {
+		if(msgs2 == null || msgs2.size() == 0)
+		return null;
+		Message m = msgs2.get(msgs2.size()-1);
+		while(m==null && msgs2.size() > 0){
+			m = msgs2.remove(msgs2.size()-1);
+		}
+		return msgs2;
 	}
 
 	@SuppressWarnings("unchecked")
