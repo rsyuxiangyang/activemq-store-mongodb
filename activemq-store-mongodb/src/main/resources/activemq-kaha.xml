@@ -23,7 +23,7 @@
   http://activemq.apache.org/schema/core http://activemq.apache.org/schema/core/activemq-core.xsd">
 
     <broker xmlns="http://activemq.apache.org/schema/core" 
-    brokerName="kk" useJmx="true">
+     brokerName="kk" useJmx="true">
  
         <destinationPolicy>
             <policyMap>
@@ -40,9 +40,11 @@
             <managementContext createConnector="true"/>
         </managementContext>
 
+		<!-- 268435456 enableJournalDiskSyncs="false" 
+		indexCacheSize="1000" enableJournalDiskSyncs="false" -->
         <persistenceAdapter>
-            <mongodb host="127.0.0.1" port="27017" db="activemq" />
-        </persistenceAdapter>
+		  <kahaDB directory="data/kahadb" journalMaxWriteBatchSize="1000"  />  
+		</persistenceAdapter>
         
         <systemUsage>
             <systemUsage>
@@ -50,7 +52,7 @@
                     <memoryUsage limit="256 mb"/>
                 </memoryUsage>
                 <storeUsage>
-                    <storeUsage limit="1 gb"/>
+                    <storeUsage limit="10 gb"/>
                 </storeUsage>
                 <tempUsage>
                     <tempUsage limit="256 mb"/>

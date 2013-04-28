@@ -28,8 +28,8 @@ public class MongodbPersistenceAdapter implements PersistenceAdapter, BrokerServ
 
 	private static final Logger LOG = LoggerFactory.getLogger(MongodbPersistenceAdapter.class);
 
-	ConcurrentHashMap<ActiveMQDestination, TopicMessageStore> topics = new ConcurrentHashMap<ActiveMQDestination, TopicMessageStore>();
-	ConcurrentHashMap<ActiveMQDestination, MessageStore> queues = new ConcurrentHashMap<ActiveMQDestination, MessageStore>();
+	ConcurrentHashMap<ActiveMQDestination, TopicMessageStore> topicStores = new ConcurrentHashMap<ActiveMQDestination, TopicMessageStore>();
+	ConcurrentHashMap<ActiveMQDestination, MessageStore> queueStores = new ConcurrentHashMap<ActiveMQDestination, MessageStore>();
 
 	protected MongoDBHelper helper;
 	private WireFormat wireFormat = new OpenWireFormat();
@@ -97,24 +97,34 @@ public class MongodbPersistenceAdapter implements PersistenceAdapter, BrokerServ
 
 	@Override
 	public MessageStore createQueueMessageStore(ActiveMQQueue destination) throws IOException {
-		LOG.debug("Create QueueMessageStore for destination:[" + destination.getQualifiedName() + "]");
-		return new MongodbMessageStore(destination, wireFormat, helper);
+		if(LOG.isDebugEnabled())
+			LOG.debug("Create QueueMessageStore for destination:[" + destination.getQualifiedName() + "]");
+		MongodbMessageStore store = new MongodbMessageStore(destination, wireFormat, helper);
+		this.queueStores.put(destination, store);
+		return store;
 	}
 
 	@Override
 	public TopicMessageStore createTopicMessageStore(ActiveMQTopic destination) throws IOException {
-		LOG.debug("Create TopicMessageStore for destination:[" + destination.getQualifiedName() + "]");
-		return new MongodbTopicMessageStore(destination, wireFormat, helper);
+		if(LOG.isDebugEnabled())
+			LOG.debug("Create TopicMessageStore for destination:[" + destination.getQualifiedName() + "]");
+		MongodbTopicMessageStore store = new MongodbTopicMessageStore(destination, wireFormat, helper);
+		this.topicStores.put(destination, store);
+		return store;
 	}
 
 	@Override
 	public void removeQueueMessageStore(ActiveMQQueue destination) {
-		// ignore
+		if(LOG.isDebugEnabled())
+			LOG.debug("Remove QueueMessageStore for destination:[" + destination.getQualifiedName() + "]");
+		this.queueStores.remove(destination);
 	}
 
 	@Override
 	public void removeTopicMessageStore(ActiveMQTopic destination) {
-		// ignore
+		if(LOG.isDebugEnabled())
+			LOG.debug("Remove TopicMessageStore for destination:[" + destination.getQualifiedName() + "]");
+		this.topicStores.remove(destination);
 	}
 
 	@Override
