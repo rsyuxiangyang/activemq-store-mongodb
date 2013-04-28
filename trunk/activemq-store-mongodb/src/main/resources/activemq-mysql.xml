@@ -16,7 +16,7 @@
 
 	<!-- The <broker> element is used to configure the ActiveMQ broker. -->
 	<broker xmlns="http://activemq.apache.org/schema/core"
-		brokerName="kk" dataDirectory="data" useJmx="true">
+		brokerName="kk" useJmx="true">
 
 		<!-- For better performances use VM cursor and small memory limit. For 
 			more information, see: http://activemq.apache.org/message-cursors.html Also, 

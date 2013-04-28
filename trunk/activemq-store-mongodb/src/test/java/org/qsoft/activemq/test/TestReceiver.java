@@ -13,6 +13,7 @@ import javax.jms.QueueSession;
 import javax.jms.Session;
 import javax.jms.TextMessage;
 
+import org.apache.activemq.ActiveMQConnection;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.command.ActiveMQQueue;
 
@@ -23,11 +24,11 @@ public class TestReceiver {
 	 */
 	public static void main(String[] args) {
 		
-		int a = 0;
+		int a = 1;
 		if(a== 1)
-		listen();
+			listen();
 		else
-		receive();
+			receive();
 
 	}
 
@@ -44,14 +45,32 @@ public class TestReceiver {
 			QueueReceiver receiver = session.createReceiver(queue);//, "score=10");
 
 			int index = 0;
-			while (index++ < 100000) {
-				Message msg = receiver.receive();
+			int count = 10000;
+			final long[] times = new long[3];
+			times[2] = times[0] = System.currentTimeMillis();
+			while (index++ < count) {
+				Message msg = receiver.receive(800);
+				if(msg == null) break;
 				//System.out.println("*********");
 				//System.out.println(msg.getIntProperty("score"));
 				//System.out.println(msg.getText());
-				if((index+1) % 100 == 0) 
-					System.out.println((index+1)+ " - " + msg.getJMSMessageID());
+//				if((index+1) % 100 == 0) 
+//					System.out.println((index+1)+ " - " + msg.getJMSMessageID());
+				
+				int a = index;
+				if( a % 100 == 0)
+				{
+					times[1] = times[0];
+					times[0] = System.currentTimeMillis();
+					//System.out.println(times[0] - times[1]);
+					
+					System.out.println((times[0] - times[1]) + " -> " +((a+1)*1000.0)/(times[0] - times[2]));
+					
+				}
 			}
+			
+			long end = System.currentTimeMillis();
+			System.out.println("receive " + (index-1) + " messages in " + (end-times[2])/1000.0 + " s");
 
 			session.close();
 			conn.close();
@@ -66,17 +85,38 @@ public class TestReceiver {
 			// init connection factory with activemq
 			QueueConnectionFactory factory = new ActiveMQConnectionFactory("tcp://127.0.0.1:61616");
 			// specify the destination
-			Queue queue = new ActiveMQQueue("kk.mongo");
+			Queue queue = new ActiveMQQueue("kk.mysql");
 			// create connection,session,consumer and receive message
-			QueueConnection conn = factory.createQueueConnection();
+			ActiveMQConnection conn = (ActiveMQConnection) factory.createQueueConnection();
+			conn.setOptimizeAcknowledge(true);
+			conn.setOptimizeAcknowledgeTimeOut(4000);
+			conn.setOptimizedAckScheduledAckInterval(2000);
+			//conn.setSendAcksAsync(true);
 			conn.start();
-
+			final int count = 10000;
 			// first receiver on broker1
 			QueueSession sessionA1 = conn.createQueueSession(false, Session.AUTO_ACKNOWLEDGE);
 			QueueReceiver receiverA1 = sessionA1.createReceiver(queue);
-			final AtomicInteger aint1 = new AtomicInteger(0);
+			final AtomicInteger a1 = new AtomicInteger(0);
+			final long[] times = new long[3];
+			times[2] = times[0] = System.currentTimeMillis();
 			MessageListener listenerA1 = new MessageListener(){
 				public void onMessage(Message message) {
+					int a = a1.getAndIncrement();
+					if( a % 100 == 0)
+					{
+						times[1] = times[0];
+						times[0] = System.currentTimeMillis();
+						//System.out.println(times[0] - times[1]);
+						
+						System.out.println((times[0] - times[1]) + " -> " +((a+1)*1000.0)/(times[0] - times[2]));
+						
+					}
+					if(a == count - 1){
+						System.out.println("onMessage " + count + " message for " + (System.currentTimeMillis()-times[2])/1000.0 + " s");
+					}
+					
+					
 //					try {
 //						System.out.println(aint1.incrementAndGet()+" => A1 receive from kk.mongo: " + ((TextMessage)message).getText());
 //					} catch (JMSException e) {

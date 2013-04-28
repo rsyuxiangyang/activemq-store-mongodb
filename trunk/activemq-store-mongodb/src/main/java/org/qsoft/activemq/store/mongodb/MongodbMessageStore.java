@@ -30,31 +30,36 @@ public class MongodbMessageStore extends AbstractMessageStore {
 
 	@Override
 	public void addMessage(ConnectionContext context, Message message) throws IOException {
-		// LOG.debug("MongodbMessageStore.addMessage: " + message);
+		if(LOG.isDebugEnabled())
+			LOG.debug("MongodbMessageStore.addMessage: " + message);
 		this.helper.addMessage(message);
 	}
 
 	@Override
 	public Message getMessage(MessageId identity) throws IOException {
-		LOG.debug("MongodbMessageStore.getMessage:{0}", identity);
+		if(LOG.isDebugEnabled())
+			LOG.debug("MongodbMessageStore.getMessage:{0}", identity);
 		return this.helper.getMessage(identity);
 	}
 
 	@Override
 	public void removeMessage(ConnectionContext context, MessageAck ack) throws IOException {
-		//LOG.debug("MongodbMessageStore.removeMessage: " + context + "," + ack);
+		if(LOG.isDebugEnabled())
+			LOG.debug("MongodbMessageStore.removeMessage: " + context + "," + ack);
 		this.helper.removeMessage(this.getDestination(), ack);
 	}
 
 	@Override
 	public void removeAllMessages(ConnectionContext context) throws IOException {
-		LOG.debug("MongodbMessageStore.removeAllMessages");
+		if(LOG.isDebugEnabled())
+			LOG.debug("MongodbMessageStore.removeAllMessages");
 		this.helper.removeAllMessages();
 	}
 
 	@Override
 	public void recover(MessageRecoveryListener container) throws Exception {
-		LOG.debug("MongodbMessageStore.recover: " + container);
+		if(LOG.isDebugEnabled())
+			LOG.debug("MongodbMessageStore.recover: " + container);
 		// TODO ? what is this
 	}
 
@@ -71,19 +76,26 @@ public class MongodbMessageStore extends AbstractMessageStore {
 
 	@Override
 	public void recoverNextMessages(int maxReturned, MessageRecoveryListener listener) throws Exception {
-		LOG.debug("MongodbMessageStore.recoverNextMessages: " + maxReturned + " from " + lastRecoveredSequenceId.get());
-		// Message message = this.helper.findOne();
+		if(LOG.isDebugEnabled())
+			LOG.debug("MongodbMessageStore.recoverNextMessages: " + maxReturned + " from " + lastRecoveredSequenceId.get());
+		//long start = System.currentTimeMillis();
 		List<Message> msgs = this.helper.find(maxReturned, this.getDestination().getQualifiedName(), lastRecoveredSequenceId.get());
+		//long end1 = System.currentTimeMillis();
+		
 		if(msgs != null) {
 			for (Message message : msgs) {
 				listener.recoverMessage(message);
 				lastRecoveredSequenceId.set(message.getMessageId().getBrokerSequenceId());
 			}
-			LOG.debug("MongodbMessageStore.recoverNextMessages: " + msgs.size() + " ~ " + this.getDestination().getQualifiedName());
+			if(LOG.isDebugEnabled())
+				LOG.debug("MongodbMessageStore.recoverNextMessages: " + msgs.size() + " ~ " + this.getDestination().getQualifiedName());
 		}
 		else{
-			LOG.debug("MongodbMessageStore.recoverNextMessages: NONE ~ " + this.getDestination().getQualifiedName());
+			if(LOG.isDebugEnabled())
+				LOG.debug("MongodbMessageStore.recoverNextMessages: NONE ~ " + this.getDestination().getQualifiedName());
 		}
+//		long end = System.currentTimeMillis();
+//		System.out.println((end1-start)+" " + (end-end1));
 
 	}
 

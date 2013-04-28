@@ -31,7 +31,8 @@ public class MongodbTopicMessageStore extends MongodbMessageStore implements
 	public void acknowledge(ConnectionContext context, String clientId,
 			String subscriptionName, MessageId messageId, MessageAck ack)
 			throws IOException {
-		LOG.debug("MongodbTopicMessageStore.acknowledge: " + clientId + ","
+		if(LOG.isDebugEnabled())
+			LOG.debug("MongodbTopicMessageStore.acknowledge: " + clientId + ","
 				+ subscriptionName + "," + messageId);
 
 	}
